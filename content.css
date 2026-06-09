@@ -1,0 +1,668 @@
+/* Typing Practice — injected styles. All selectors scoped with tp- prefix.
+   Theme is selected at activate() time by detectPageTheme() which adds either
+   tp-theme-light or tp-theme-dark on <html>. Every color comes from a
+   --tp-* custom property defined below so re-theming is just a class swap. */
+
+html.tp-theme-light {
+  --tp-bg-card:          rgba(255, 255, 255, 0.98);
+  --tp-bg-card-elev:     #f1f3f5;
+  --tp-fg:               #111111;
+  --tp-fg-muted:         rgba(0, 0, 0, 0.6);
+  --tp-border:           rgba(0, 0, 0, 0.08);
+  --tp-accent:           #2c7be5;
+  --tp-accent-hover:     #1d63c6;
+  --tp-accent-soft:      #eaf2fd;
+  --tp-accent-fg:        #ffffff;
+  --tp-backdrop:         rgba(0, 0, 0, 0.35);
+  /* Dimmed body text in ARMED state — semi-transparent black on light bg. */
+  --tp-dim-overlay:      rgba(0, 0, 0, 0.45);
+  --tp-char-pending:     rgba(0, 0, 0, 0.32);
+  --tp-char-correct:     rgb(20, 20, 20);
+  --tp-char-wrong:       rgb(180, 30, 30);
+  --tp-char-wrong-bg:    rgba(220, 50, 50, 0.18);
+  --tp-char-skipped:     rgba(0, 0, 0, 0.32);
+  --tp-char-skipped-deco: rgba(0, 0, 0, 0.4);
+  --tp-caret:            #2c7be5;
+  --tp-tooltip-bg:       rgba(255, 255, 255, 0.98);
+  --tp-tooltip-fg:       #111111;
+  --tp-kbd-bg:           #f1f3f5;
+  --tp-kbd-border:       #d0d4d8;
+  --tp-kbd-fg:           #333333;
+  --tp-target-outline:   rgba(44, 123, 229, 0.15);
+  /* Selection-mode orange: hover highlight, glow, and the ::selection paint. */
+  --tp-hover-bg:         rgba(249, 115, 22, 0.12);
+  --tp-hover-outline:    #f97316;
+  --tp-hover-glow:       rgba(249, 115, 22, 0.55);
+  --tp-select:           rgba(249, 115, 22, 0.30);
+  --tp-shadow:           0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+  --tp-shadow-modal:     0 24px 60px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.10);
+}
+
+html.tp-theme-dark {
+  --tp-bg-card:          #1f2937;
+  --tp-bg-card-elev:     #374151;
+  --tp-fg:               #f3f4f6;
+  --tp-fg-muted:         #9ca3af;
+  --tp-border:           rgba(255, 255, 255, 0.08);
+  --tp-accent:           #60a5fa;
+  --tp-accent-hover:     #3b82f6;
+  --tp-accent-soft:      rgba(96, 165, 250, 0.18);
+  --tp-accent-fg:        #0b1220;
+  --tp-backdrop:         rgba(0, 0, 0, 0.55);
+  /* Dimmed body text in ARMED state — faded foreground on dark, so still legible. */
+  --tp-dim-overlay:      rgba(243, 244, 246, 0.40);
+  --tp-char-pending:     rgba(243, 244, 246, 0.45);
+  --tp-char-correct:     #f3f4f6;
+  --tp-char-wrong:       #fca5a5;
+  --tp-char-wrong-bg:    rgba(220, 38, 38, 0.25);
+  --tp-char-skipped:     rgba(243, 244, 246, 0.30);
+  --tp-char-skipped-deco: rgba(243, 244, 246, 0.45);
+  --tp-caret:            #60a5fa;
+  --tp-tooltip-bg:       #1f2937;
+  --tp-tooltip-fg:       #f3f4f6;
+  --tp-kbd-bg:           #374151;
+  --tp-kbd-border:       rgba(255, 255, 255, 0.18);
+  --tp-kbd-fg:           #e5e7eb;
+  --tp-target-outline:   rgba(96, 165, 250, 0.30);
+  /* Selection-mode orange — brighter on dark so it reads against dark prose. */
+  --tp-hover-bg:         rgba(251, 146, 60, 0.18);
+  --tp-hover-outline:    #fb923c;
+  --tp-hover-glow:       rgba(251, 146, 60, 0.50);
+  --tp-select:           rgba(251, 146, 60, 0.35);
+  --tp-shadow:           0 10px 30px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --tp-shadow-modal:     0 24px 60px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+html.tp-active, html.tp-active body {
+  cursor: text;
+}
+
+/* When practice is armed but no target chosen yet, dim normal text slightly so
+   the user understands they need to click a block. The dim overlay flips
+   between dark veil and light veil based on theme.
+   We also suppress the browser's own text-selection here: the native blue
+   drag-highlight does nothing for the extension and only confuses, so we turn
+   selection off and switch to a pointer cursor that says "click, don't drag".
+   The orange feedback comes from .tp-hover-block instead. */
+html.tp-armed body {
+  color: var(--tp-dim-overlay) !important;
+  cursor: pointer !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+/* Belt-and-suspenders: if a selection still slips through, paint it orange
+   (matching the highlight) rather than the default blue. */
+html.tp-armed ::selection { background: var(--tp-select); }
+html.tp-armed ::-moz-selection { background: var(--tp-select); }
+html.tp-armed #tp-hud,
+html.tp-armed #tp-hud *,
+html.tp-armed #tp-tooltip,
+html.tp-armed #tp-tooltip *,
+html.tp-armed #tp-select-banner,
+html.tp-armed #tp-select-banner .tp-select-text {
+  color: var(--tp-fg) !important;
+}
+html.tp-armed #tp-select-banner .tp-select-text b {
+  color: var(--tp-hover-outline) !important;
+}
+html.tp-armed #tp-hud .tp-value,
+html.tp-armed #tp-hud .tp-value * {
+  color: var(--tp-accent) !important;
+}
+
+/* Per-character spans inside the chosen target block. */
+.tp-char {
+  color: var(--tp-char-pending) !important;
+  background: transparent !important;
+  transition: color 80ms linear, background-color 80ms linear;
+}
+.tp-char.tp-correct {
+  color: var(--tp-char-correct) !important;
+}
+.tp-char.tp-wrong {
+  color: var(--tp-char-wrong) !important;
+  background: var(--tp-char-wrong-bg) !important;
+  border-radius: 2px;
+}
+.tp-char.tp-skipped {
+  color: var(--tp-char-skipped) !important;
+  text-decoration: underline dotted var(--tp-char-skipped-deco);
+}
+
+/* Non-typeable preserved text (e.g. inside <sup>). Visible but skipped. */
+.tp-skip-render {
+  color: var(--tp-char-pending) !important;
+}
+
+/* The caret — absolutely positioned overlay so it never affects layout. */
+#tp-caret {
+  position: absolute;
+  width: 2px;
+  background: var(--tp-caret);
+  pointer-events: none;
+  z-index: 2147483646;
+  animation: tp-blink 1s steps(2, start) infinite;
+  border-radius: 1px;
+  transition: top 80ms ease, left 80ms ease, height 80ms ease;
+}
+@keyframes tp-blink {
+  to { visibility: hidden; }
+}
+
+/* Highlight ring around the currently active target block. */
+.tp-target {
+  outline: 2px solid var(--tp-target-outline);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+/* In sentence selection the whole paragraph is still the restore target, but we
+   don't outline it — the orange .tp-sentence-wrap tint marks the active text. */
+.tp-target:has(.tp-sentence-wrap) {
+  outline: none;
+}
+
+/* The paragraph under the pointer while ARMED — what a click would select.
+   Animated orange so it's obvious the extension is tracking the cursor and
+   ready to receive the selection. */
+.tp-hover-block {
+  background: var(--tp-hover-bg) !important;
+  outline: 2px solid var(--tp-hover-outline) !important;
+  outline-offset: 4px;
+  border-radius: 4px;
+  cursor: pointer !important;
+  animation: tp-hover-pulse 1.2s ease-in-out infinite;
+}
+@keyframes tp-hover-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--tp-hover-glow), 0 0 12px 2px var(--tp-hover-glow); }
+  50%      { box-shadow: 0 0 0 2px var(--tp-hover-glow), 0 0 22px 7px var(--tp-hover-glow); }
+}
+
+/* One-shot expanding ring when a block is clicked — confirms "got it". */
+.tp-selected-flash {
+  animation: tp-selected-flash 0.6s ease-out 1;
+}
+@keyframes tp-selected-flash {
+  0%   { box-shadow: 0 0 0 0 var(--tp-hover-glow); }
+  100% { box-shadow: 0 0 0 18px transparent; }
+}
+
+/* Sentence-granularity hover highlight. Painted as absolutely-positioned boxes
+   over the sentence's client rects (one per wrapped line) so we never mutate
+   page DOM while the mouse moves. The container is click-through. */
+#tp-sentence-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  pointer-events: none;
+}
+.tp-sentence-box {
+  position: absolute;
+  background: var(--tp-hover-bg);
+  outline: 2px solid var(--tp-hover-outline);
+  outline-offset: 1px;
+  border-radius: 3px;
+  animation: tp-hover-pulse 1.2s ease-in-out infinite;
+}
+
+/* The chosen sentence during TYPING — a faint orange tint delineates the
+   active sentence from the surrounding (untyped) prose. box-decoration-break
+   keeps the tint/radius intact when the sentence wraps across lines. */
+.tp-sentence-wrap {
+  background: var(--tp-hover-bg);
+  border-radius: 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* HUD card — bottom right. Stacks the speedometer above a 2-column rows grid. */
+#tp-hud {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 2147483647;
+  background: var(--tp-bg-card);
+  color: var(--tp-fg);
+  font: 500 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 14px 18px;
+  border-radius: 12px;
+  box-shadow: var(--tp-shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 200px;
+  pointer-events: none;
+}
+#tp-hud .tp-hud-rows {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px 18px;
+  border-top: 1px solid var(--tp-border);
+  padding-top: 8px;
+}
+#tp-hud .tp-label { color: var(--tp-fg-muted); }
+#tp-hud .tp-value { text-align: right; color: var(--tp-accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+#tp-hud .tp-value .tp-unit { color: var(--tp-accent); margin-left: 4px; font-weight: 500; opacity: 0.85; }
+
+/* Speedometer — half-circle SVG gauge with live WPM readout in the middle. */
+#tp-hud .tp-speedo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+/* svg-gauge mounts an <svg> inside .tp-speedo-container with classes .dial
+   (the background arc) and .value (the live foreground arc). The library's
+   own .value-text is hidden — we render the WPM number ourselves in the
+   absolutely-positioned .tp-speedo-readout overlay. */
+#tp-hud .tp-speedo-container {
+  width: 80px;
+  height: 50px;
+  position: relative;
+}
+#tp-hud .tp-speedo-container svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+#tp-hud .tp-speedo-container .dial {
+  stroke: var(--tp-border);
+  stroke-width: 8;
+  fill: none;
+  stroke-linecap: round;
+}
+#tp-hud .tp-speedo-container .value {
+  stroke-width: 8;
+  fill: none;
+  stroke-linecap: round;
+  /* Smooth color transitions when crossing the 30/60/90 WPM bands. The
+     library handles the arc-length animation itself via setValueAnimated;
+     we only need to ease the color hops here. */
+  transition: stroke 200ms ease;
+}
+#tp-hud .tp-speedo-container .value-text {
+  display: none;
+}
+#tp-hud .tp-speedo-readout {
+  position: absolute;
+  top: 22px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+}
+#tp-hud .tp-speedo-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--tp-fg);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: color 200ms ease;
+}
+#tp-hud .tp-speedo-label {
+  font-size: 10px;
+  color: var(--tp-fg-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* Selection-mode banner — top center, unmissable, gently pulsing. The one
+   piece of UI that answers "am I in selection mode?" at a glance. */
+#tp-select-banner {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--tp-tooltip-bg);
+  color: var(--tp-fg);
+  border: 1.5px solid var(--tp-hover-outline);
+  font: 600 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 10px 18px;
+  border-radius: 999px;
+  box-shadow: var(--tp-shadow);
+  /* Interactive now (it holds the granularity toggle), and being solid means a
+     hover over the banner won't bleed through to highlight the text behind it. */
+  pointer-events: auto;
+  max-width: calc(100vw - 48px);
+  animation: tp-banner-in 0.25s ease-out;
+}
+#tp-select-banner .tp-select-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--tp-hover-outline);
+  flex: 0 0 10px;
+  animation: tp-dot-pulse 1.2s ease-in-out infinite;
+}
+/* Granularity toggle. The banner itself is click-through (pointer-events:none);
+   the toggle re-enables pointer events so its chips are clickable. */
+#tp-select-banner .tp-select-toggle {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 4px;
+  padding-left: 12px;
+  border-left: 1px solid var(--tp-border);
+  pointer-events: auto;
+}
+#tp-select-banner .tp-gran-btn {
+  pointer-events: auto;
+  cursor: pointer;
+  font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--tp-fg-muted) !important;
+  background: transparent;
+  border: 1px solid var(--tp-border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  transition: color 100ms, background-color 100ms, border-color 100ms;
+}
+#tp-select-banner .tp-gran-btn:hover {
+  border-color: var(--tp-hover-outline);
+  color: var(--tp-fg) !important;
+}
+#tp-select-banner .tp-gran-btn.tp-gran-active {
+  color: var(--tp-accent-fg) !important;
+  background: var(--tp-hover-outline);
+  border-color: var(--tp-hover-outline);
+}
+@keyframes tp-dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--tp-hover-glow); opacity: 1; }
+  50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; }
+}
+@keyframes tp-banner-in {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Start tooltip / instructions card. */
+#tp-tooltip {
+  position: fixed;
+  z-index: 2147483647;
+  background: var(--tp-tooltip-bg);
+  color: var(--tp-tooltip-fg);
+  font: 500 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 14px 18px;
+  border-radius: 12px;
+  box-shadow: var(--tp-shadow);
+  max-width: 360px;
+  pointer-events: none;
+}
+#tp-tooltip ul { margin: 0; padding: 0; list-style: none; }
+#tp-tooltip li { display: flex; align-items: baseline; gap: 8px; margin: 4px 0; }
+#tp-tooltip li::before {
+  content: "";
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--tp-accent); flex: 0 0 6px; align-self: center;
+}
+#tp-tooltip kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--tp-kbd-bg);
+  border: 1px solid var(--tp-kbd-border);
+  font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--tp-kbd-fg);
+}
+
+/* ---------- Modal backdrop (launcher + results) ---------- */
+.tp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: var(--tp-backdrop);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  color: var(--tp-fg);
+  font: 500 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.tp-card {
+  position: relative;
+  background: var(--tp-bg-card);
+  color: var(--tp-fg);
+  border-radius: 14px;
+  padding: 28px 32px;
+  box-shadow: var(--tp-shadow-modal);
+  min-width: 340px;
+  max-width: 520px;
+}
+.tp-card-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  color: var(--tp-fg);
+}
+.tp-card-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--tp-fg-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.tp-card-close:hover {
+  background: var(--tp-bg-card-elev);
+  color: var(--tp-fg);
+}
+
+/* Launcher rows */
+#tp-launcher .tp-row {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 14px;
+  margin: 12px 0;
+}
+#tp-launcher .tp-row-label {
+  color: var(--tp-fg-muted);
+  font-weight: 600;
+}
+#tp-launcher .tp-row-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Shortcuts section at the bottom of the launcher card. */
+#tp-launcher .tp-shortcuts {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--tp-border);
+}
+#tp-launcher .tp-shortcuts-title {
+  color: var(--tp-fg-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+#tp-launcher .tp-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--tp-fg-muted);
+  line-height: 22px;
+}
+.tp-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 1px 6px;
+  background: var(--tp-kbd-bg, var(--tp-bg-card-elev));
+  border: 1px solid var(--tp-kbd-border, var(--tp-border));
+  border-radius: 4px;
+  color: var(--tp-kbd-fg, var(--tp-fg));
+  font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.tp-btn {
+  background: transparent;
+  color: var(--tp-accent);
+  border: 1.5px solid var(--tp-accent);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font: 600 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  cursor: pointer;
+  transition: background 80ms ease, color 80ms ease, transform 80ms ease;
+}
+.tp-btn:hover { background: var(--tp-accent-soft); }
+.tp-btn:active { transform: scale(0.97); }
+.tp-btn-primary {
+  background: var(--tp-accent);
+  color: var(--tp-accent-fg);
+}
+.tp-btn-primary:hover { background: var(--tp-accent-hover); color: var(--tp-accent-fg); }
+
+/* Results modal */
+#tp-results .tp-hero {
+  text-align: center;
+  margin: 8px 0 18px;
+}
+#tp-results .tp-hero-wpm {
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--tp-accent);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+#tp-results .tp-hero-label {
+  font-size: 13px;
+  color: var(--tp-fg-muted);
+  margin-top: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+#tp-results .tp-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 24px;
+  margin: 14px 0 22px;
+}
+#tp-results .tp-stat-label {
+  color: var(--tp-fg-muted);
+}
+#tp-results .tp-stat-value {
+  text-align: right;
+  color: var(--tp-fg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+#tp-results .tp-words-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -8px 0 18px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--tp-border);
+}
+#tp-results .tp-words-value {
+  text-align: right;
+  color: var(--tp-fg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+#tp-results .tp-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* ---------- On-screen keyboard ---------- */
+#tp-keyboard {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  background: var(--tp-bg-card);
+  border: 1px solid var(--tp-border);
+  border-radius: 12px;
+  box-shadow: var(--tp-shadow);
+  z-index: 2147483645;
+  pointer-events: none;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 11px;
+  user-select: none;
+  opacity: 0.92;
+  backdrop-filter: blur(8px);
+}
+.tp-keyboard-row { display: flex; gap: 4px; justify-content: center; }
+.tp-key {
+  min-width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 6px;
+  background: var(--tp-bg-card-elev);
+  border: 1px solid var(--tp-border);
+  border-radius: 6px;
+  color: var(--tp-fg);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 80ms ease;
+}
+.tp-key-wide-1_5 { min-width: 48px; }
+.tp-key-wide-1_75 { min-width: 56px; }
+.tp-key-wide-2 { min-width: 64px; }
+.tp-key-wide-2_25 { min-width: 72px; }
+.tp-key-space { min-width: 192px; }
+.tp-key-active {
+  background: var(--tp-accent) !important;
+  color: var(--tp-accent-fg) !important;
+  border-color: var(--tp-accent) !important;
+  transform: translateY(1px);
+  /* Outer ring guarantees the flash reads against any finger-zone tint,
+     including the right-middle periwinkle which is close to the accent hue. */
+  box-shadow: 0 0 0 2px var(--tp-bg-card), 0 0 0 4px var(--tp-accent);
+}
+.tp-key-next {
+  border-color: var(--tp-accent) !important;
+  /* Stronger glow than before — needs to stand out on the saturated tints. */
+  box-shadow: 0 0 0 2px var(--tp-bg-card), 0 0 0 4px var(--tp-accent) !important;
+}
+
+/* Finger-zone tints. Decorative — purely there to help users learn which
+   finger should press which key in standard touch-typing form. Light-mode
+   pastels are very faint to keep the text legible; dark-mode tints are
+   deeper but still desaturated. Active/next state classes use !important
+   above so they always override these. */
+html.tp-theme-light .tp-key[data-finger="left-pinky"]    { background: #fbb1b1; color: #111; }
+html.tp-theme-light .tp-key[data-finger="left-ring"]     { background: #fbcf91; color: #111; }
+html.tp-theme-light .tp-key[data-finger="left-middle"]   { background: #fce58b; color: #111; }
+html.tp-theme-light .tp-key[data-finger="left-index"]    { background: #a6e8a6; color: #111; }
+html.tp-theme-light .tp-key[data-finger="thumbs"]        { background: #cfd2d6; color: #111; }
+html.tp-theme-light .tp-key[data-finger="right-index"]   { background: #9ec9e3; color: #111; }
+html.tp-theme-light .tp-key[data-finger="right-middle"]  { background: #a0aee8; color: #111; }
+html.tp-theme-light .tp-key[data-finger="right-ring"]    { background: #c9a8e8; color: #111; }
+html.tp-theme-light .tp-key[data-finger="right-pinky"]   { background: #e8a3d4; color: #111; }
+
+html.tp-theme-dark .tp-key[data-finger="left-pinky"]     { background: #b03a3a; color: #fafafa; }
+html.tp-theme-dark .tp-key[data-finger="left-ring"]      { background: #a86a30; color: #fafafa; }
+html.tp-theme-dark .tp-key[data-finger="left-middle"]    { background: #b09c30; color: #fafafa; }
+html.tp-theme-dark .tp-key[data-finger="left-index"]     { background: #3f8a3f; color: #fafafa; }
+html.tp-theme-dark .tp-key[data-finger="thumbs"]         { background: #5a5d61; color: #fafafa; }
+html.tp-theme-dark .tp-key[data-finger="right-index"]    { background: #3a6f8e; color: #fafafa; }
+html.tp-theme-dark .tp-key[data-finger="right-middle"]   { background: #3a4a8e; color: #fafafa; }
+html.tp-theme-dark .tp-key[data-finger="right-ring"]     { background: #6a3a8e; color: #fafafa; }
+html.tp-theme-dark .tp-key[data-finger="right-pinky"]    { background: #8e3a78; color: #fafafa; }

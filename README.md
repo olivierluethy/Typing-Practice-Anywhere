@@ -1,4 +1,15 @@
-# Typing Practice Anywhere
+<div align="center">
+  <img src="icons/icon128.png" alt="Typing Practice Anywhere logo" width="140" />
+  <h1>Typing Practice Anywhere</h1>
+  <p><b>Turn any web page into a typing test.</b><br/>A Chrome extension that lets you practice typing on real text from any site, with live WPM, error tracking and a color-coded keyboard.</p>
+  <p>
+    <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
+    <img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black">
+    <img alt="Chrome Extension" src="https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white">
+  </p>
+</div>
+
+---
 
 A Chrome extension that turns any web page into a typing test. Click the T icon in your toolbar, pick a mode, hover the text you want (it glows orange), click — and start typing.
 
@@ -42,8 +53,9 @@ Errors in the HUD are word-level: one typo in a word counts as one error, regard
 
 ## License
 
-MIT.
+Released under the [MIT License](LICENSE) © 2026 Olivier Lüthy. You're free to use, modify and distribute this
+software, including commercially, as long as the copyright notice and license are included.
 
----
+## Author
 
-Built by Claude Code on Perplexity Computer.
+Built by **Olivier Lüthy** — [GitHub](https://github.com/olivierluethy).
